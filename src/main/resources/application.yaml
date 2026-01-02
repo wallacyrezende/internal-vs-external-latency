@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: internal-vs-external-latency
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: metrics
+  observations:
+    annotations:
+      enabled: true
