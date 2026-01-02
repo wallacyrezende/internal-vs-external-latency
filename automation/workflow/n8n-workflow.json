@@ -1,0 +1,307 @@
+{
+  "name": "Diagnóstico de Latência: Serviço vs API Externa",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        544
+      ],
+      "id": "1bf1602a-210f-4711-9c74-03bd063e6aaf",
+      "name": "Disparo periódico"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8081/api/movies",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -96,
+        544
+      ],
+      "id": "b31b3c0b-78e3-4424-b237-fd0b4ead0281",
+      "name": "Executar endpoint /movies"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8081/actuator/metrics/external.imdb.movies.latency",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        128,
+        448
+      ],
+      "id": "44a50d66-937b-4b50-9bc7-fad131e5aaa2",
+      "name": "Coletar latência da API externa (IMDB)"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8081/actuator/metrics/service.movies.endpoint.latency",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        128,
+        640
+      ],
+      "id": "3c431b9b-cd55-468d-a2f1-3824731efa80",
+      "name": "Coletar latência do endpoint interno"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        352,
+        544
+      ],
+      "id": "ff4af684-c843-413f-a5a2-6927c33a4935",
+      "name": "Unificar métricas"
+    },
+    {
+      "parameters": {
+        "jsCode": "let external;\nlet internal;\n\n// Identifica cada métrica pelo nome\nfor (const item of items) {\n  if (item.json.name.startsWith('external')) {\n    external = item.json;\n  }\n\n  if (item.json.name.startsWith('service')) {\n    internal = item.json;\n  }\n}\n\n// Função utilitária para extrair valor de uma estatística\nfunction getStat(metric, statName) {\n  return metric.measurements.find(m => m.statistic === statName)?.value ?? 0;\n}\n\n// Calcula médias\nconst externalAvg =\n  getStat(external, 'TOTAL_TIME') / getStat(external, 'COUNT');\n\nconst internalAvg =\n  getStat(internal, 'TOTAL_TIME') / getStat(internal, 'COUNT');\n\nconst diff = internalAvg - externalAvg;\n\n// segundos\nconst thresholds = {\n  external: 0.8, \n  internalDiff: 0.3\n};\n\n// Diagnóstico\nlet diagnosis = 'OK';\n\nif (externalAvg > thresholds.external) {\n  diagnosis = 'EXTERNAL_LATENCY';\n} else if (diff > thresholds.internalDiff) {\n  diagnosis = 'INTERNAL_LATENCY';\n}\n\nreturn [\n  {\n    json: {\n      externalAvg,\n      internalAvg,\n      diff,\n      diagnosis\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        544
+      ],
+      "id": "f0ff7c4c-583f-400e-bf89-ef5c80a96887",
+      "name": "Calcular latências e gerar diagnóstico"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.diagnosis }}",
+                    "rightValue": "=INTERNAL_LATENCY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "94c155df-66f0-41b8-ba18-dbc41c96af60"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INTERNAL_LATENCY"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6ad7fbe4-8fd1-4330-b474-3bc3cda00d81",
+                    "leftValue": "={{ $json.diagnosis }}",
+                    "rightValue": "EXTERNAL_LATENCY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EXTERNAL_LATENCY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        544
+      ],
+      "id": "c4e0fb39-4476-483d-80d2-211c31249eb5",
+      "name": "Decidir ação com base no diagnóstico"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "my-instance",
+        "remoteJid": "554884864063@s.whatsapp.net",
+        "messageText": "API interna de filmes está lenta",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        448
+      ],
+      "id": "bba4b173-b3e1-4275-bfa5-8dd9766bb027",
+      "name": "Alertar latência interna do serviço",
+      "credentials": {
+        "evolutionApi": {
+          "id": "uV9IvoUezfLIT6wp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "my-instance",
+        "remoteJid": "554884864063@s.whatsapp.net",
+        "messageText": "API exrerna de filmes do IMDB está lenta",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        640
+      ],
+      "id": "92cee9cc-8645-41c7-b5e4-27146cba6092",
+      "name": "Alertar latência da API externa",
+      "credentials": {
+        "evolutionApi": {
+          "id": "uV9IvoUezfLIT6wp",
+          "name": "Evolution account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Disparo periódico": {
+      "main": [
+        [
+          {
+            "node": "Executar endpoint /movies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar endpoint /movies": {
+      "main": [
+        [
+          {
+            "node": "Coletar latência da API externa (IMDB)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Coletar latência do endpoint interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coletar latência da API externa (IMDB)": {
+      "main": [
+        [
+          {
+            "node": "Unificar métricas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coletar latência do endpoint interno": {
+      "main": [
+        [
+          {
+            "node": "Unificar métricas",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unificar métricas": {
+      "main": [
+        [
+          {
+            "node": "Calcular latências e gerar diagnóstico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular latências e gerar diagnóstico": {
+      "main": [
+        [
+          {
+            "node": "Decidir ação com base no diagnóstico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decidir ação com base no diagnóstico": {
+      "main": [
+        [
+          {
+            "node": "Alertar latência interna do serviço",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alertar latência da API externa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d27e9398-6fc6-4442-8a2b-b66982048ff9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "27b550d7b0110b4137b19c0ec71013b96f6264a27133fe49aeef925f9f6965a1"
+  },
+  "id": "ItGKEyzjfaykA3nA",
+  "tags": []
+}

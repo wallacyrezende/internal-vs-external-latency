@@ -64,3 +64,16 @@ Essa simulação permite observar como as métricas se comportam quando o gargal
 ```bash
 ./mvnw spring-boot:run
 ```
+
+## Consultando métricas
+
+Exemplos de endpoints de métricas:
+
+- GET /actuator/metrics/service.movies.endpoint.latency
+- GET /actuator/metrics/external.imdb.movies.latency
+
+---
+
+## Automação
+
+Este repositório também contém uma stack opcional de automação com n8n, que pode consumir essas métricas e tomar decisões automáticas (como envio de alertas). Disponível na pasta `/automation`.
