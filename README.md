@@ -4,16 +4,12 @@ Este projeto demonstra como diferenciar **latência interna de um serviço** e *
 
 O objetivo não é criar uma stack completa de observabilidade, mas mostrar como métricas simples, bem posicionadas, já permitem identificar **onde está o gargalo** quando um endpoint fica lento.
 
----
-
 ## Problema
 
 Em sistemas distribuídos, quando um endpoint apresenta alta latência, é comum assumir que o problema está no próprio serviço.  
 Na prática, muitas vezes o tempo de resposta é dominado por **dependências externas**.
 
 Medir apenas a latência do endpoint responde *“está lento?”*, mas não responde *“onde está lento?”*.
-
----
 
 ## Abordagem
 
@@ -31,8 +27,6 @@ Com isso, é possível identificar se o gargalo está:
 - no processamento interno
 - ou na dependência externa
 
----
-
 ## Métricas expostas
 
 As métricas são expostas via **Spring Boot Actuator**:
@@ -45,8 +39,6 @@ As métricas são expostas via **Spring Boot Actuator**:
 
 Essas métricas podem ser consultadas diretamente pelo Actuator e usadas por ferramentas externas para análise ou automação.
 
----
-
 ## Simulação de latência
 
 Para fins didáticos, o projeto permite simular **latência interna no serviço**, representando cenários como:
@@ -56,8 +48,6 @@ Para fins didáticos, o projeto permite simular **latência interna no serviço*
 - lógica síncrona inesperada
 
 Essa simulação permite observar como as métricas se comportam quando o gargalo muda de lugar, tornando o diagnóstico mais claro.
-
----
 
 ## Executando a aplicação
 
@@ -72,7 +62,6 @@ Exemplos de endpoints de métricas:
 - GET /actuator/metrics/service.movies.endpoint.latency
 - GET /actuator/metrics/external.imdb.movies.latency
 
----
 
 ## Automação
 

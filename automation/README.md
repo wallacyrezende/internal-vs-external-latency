@@ -4,8 +4,6 @@ Esta pasta contém a stack de automação utilizada para analisar as métricas d
 
 A automação foi construída especificamente para o serviço `/movies`, que consome uma API externa (IMDB), permitindo identificar se a lentidão percebida pelo cliente está no **processamento interno** ou na **dependência externa**.
 
----
-
 ## Objetivo da automação
 
 O objetivo desta automação é evitar diagnósticos simplistas baseados apenas no tempo de resposta do endpoint.
@@ -20,8 +18,6 @@ Para isso, o workflow:
 
 O foco não é alertar que “está lento”, mas indicar **onde está o gargalo**.
 
----
-
 ## Componentes utilizados
 
 A stack de automação é composta por:
@@ -34,8 +30,6 @@ A stack de automação é composta por:
 
 - **Docker Compose**  
   Responsável por subir a stack localmente de forma simples
-
----
 
 ## Fluxo do workflow
 
@@ -55,8 +49,6 @@ Toda a lógica de decisão é centralizada em um único ponto, separando clarame
 - diagnóstico
 - ação
 
----
-
 ## Diagnóstico produzido
 
 O workflow classifica cada execução em um dos seguintes estados:
@@ -72,8 +64,6 @@ O workflow classifica cada execução em um dos seguintes estados:
 
 Essa classificação permite ações mais precisas e evita alertas genéricos.
 
----
-
 ## Thresholds
 
 Os thresholds definidos no workflow têm caráter demonstrativo e foram escolhidos apenas para facilitar a visualização do comportamento do fluxo.
@@ -82,8 +72,6 @@ Em um ambiente real, esses valores devem ser ajustados com base em:
 - histórico de métricas
 - SLOs do serviço
 - perfil de carga e tráfego
-
----
 
 ## Executando a automação
 
